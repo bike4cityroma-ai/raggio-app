@@ -23,6 +23,26 @@ android {
         compose = true
         buildConfig = true
     }
+    buildTypes {
+        debug {
+            // Anche l'APK distribuito ai tester viene ridotto e offuscato.
+            // La firma debug mantiene semplice l'installazione fuori dal Play Store.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

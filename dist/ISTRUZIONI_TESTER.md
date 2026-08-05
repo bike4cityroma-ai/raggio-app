@@ -2,7 +2,7 @@
 
 File: `RAGGIO-tester-v0.1.0.apk`
 
-SHA-256: `0B1C790960D6D564711E8B6F950D648F85409E1ADE6C660C674F53BC01B0D474`
+SHA-256: `B167B4AF895E6824700B160054AB27EC8119041114BDCE5C2DBDAD7D3DC9281A`
 
 ## Installazione
 
@@ -11,7 +11,7 @@ SHA-256: `0B1C790960D6D564711E8B6F950D648F85409E1ADE6C660C674F53BC01B0D474`
 3. Se richiesto, consentire temporaneamente l'installazione da questa origine.
 4. Premere **Installa** e poi **Apri**.
 
-Questa è una build di test firmata con il certificato di sviluppo. Non deve essere pubblicata sul Play Store e sarà sostituita dalla futura build release firmata.
+Questa è una build di test offuscata con R8 e firmata con il certificato di sviluppo. Non deve essere pubblicata sul Play Store e sarà sostituita dalla futura build release firmata.
 
 ## Controlli richiesti
 
