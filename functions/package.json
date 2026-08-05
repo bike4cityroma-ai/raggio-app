@@ -1,0 +1,26 @@
+{
+  "name": "bike4city-ciclofficina-functions",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "npm run build && node --test lib/safety/serverSafety.test.js lib/rateLimit/rateLimiter.test.js lib/schema/chatSchema.test.js",
+    "test:e2e": "node scripts/e2e.mjs",
+    "serve": "npm run build && firebase emulators:start --only functions,auth,firestore",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.0",
+    "openai": "^6.16.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.3"
+  }
+}

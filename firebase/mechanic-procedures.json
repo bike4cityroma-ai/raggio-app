@@ -1,0 +1,109 @@
+[
+  {
+    "id": "tires-basic-check",
+    "active": true,
+    "category": "TIRES",
+    "title": "Controllo prudente di pneumatico e pressione",
+    "steps": [
+      "A bici ferma, osserva il battistrada e i fianchi senza smontare la ruota.",
+      "Cerca tagli, rigonfiamenti, fili visibili o corpi estranei conficcati.",
+      "Confronta la pressione con l'intervallo scritto sul fianco dello pneumatico e usa una pompa con manometro.",
+      "Dopo il gonfiaggio attendi alcuni minuti e verifica se lo pneumatico perde nuovamente pressione."
+    ],
+    "warnings": [
+      "Non usare la bici con tagli profondi, rigonfiamenti, tela visibile o perdita rapida di pressione.",
+      "Non superare mai la pressione massima indicata sul fianco."
+    ]
+  },
+  {
+    "id": "brakes-visual-check",
+    "active": true,
+    "category": "BRAKES",
+    "title": "Controllo esterno dei freni",
+    "steps": [
+      "A bici ferma, premi separatamente ciascuna leva e verifica che opponga resistenza prima di arrivare al manubrio.",
+      "Osserva dall'esterno se pattini o pastiglie sono presenti, allineati e non chiaramente consumati.",
+      "Spingi la bici a passo d'uomo in un luogo sicuro e verifica separatamente che ogni freno arresti la ruota."
+    ],
+    "warnings": [
+      "Se una leva arriva al manubrio, il freno non arresta la ruota, perde liquido o presenta parti allentate: non usare la bici.",
+      "Non proporre spurghi, apertura dell'impianto idraulico o regolazioni avanzate a distanza."
+    ]
+  },
+  {
+    "id": "transmission-basic-care",
+    "active": true,
+    "category": "TRANSMISSION",
+    "title": "Controllo e pulizia leggera della trasmissione",
+    "steps": [
+      "A bici ferma, osserva catena e ingranaggi cercando ruggine marcata, maglie piegate o componenti visibilmente allentati.",
+      "Rimuovi soltanto lo sporco esterno con un panno, tenendo le dita lontane dagli ingranaggi.",
+      "Se la catena è asciutta, applica poco lubrificante specifico su ogni rullino e rimuovi l'eccesso con un panno.",
+      "Prova il cambio sollevando la ruota in modo stabile oppure procedendo lentamente in un'area priva di traffico."
+    ],
+    "warnings": [
+      "Non lavorare sulla trasmissione mentre qualcuno aziona pedali o motore.",
+      "Catena che salta, deragliatore piegato o parti che toccano i raggi richiedono la ciclofficina."
+    ]
+  },
+  {
+    "id": "steering-static-check",
+    "active": true,
+    "category": "STEERING",
+    "title": "Controllo statico di manubrio e sterzo",
+    "steps": [
+      "A bici ferma e con il freno anteriore premuto, muovi delicatamente la bici avanti e indietro per percepire eventuali giochi.",
+      "Osserva se manubrio e ruota anteriore restano allineati senza forzare o allentare componenti.",
+      "Ruota lentamente il manubrio e verifica che il movimento sia libero e uniforme."
+    ],
+    "warnings": [
+      "Gioco, bloccaggio, scatti, crepe o disallineamento dello sterzo impongono di non usare la bici.",
+      "Non indicare serraggi della serie sterzo o dell'attacco senza controllo professionale."
+    ]
+  },
+  {
+    "id": "wheels-static-check",
+    "active": true,
+    "category": "WHEELS",
+    "title": "Controllo statico delle ruote",
+    "steps": [
+      "Solleva una ruota alla volta mantenendo la bici stabile e falla girare lentamente.",
+      "Osserva senza toccare la ruota in movimento se il cerchio oscilla lateralmente o sfrega.",
+      "A ruota ferma, verifica visivamente che perno o sgancio siano completamente chiusi e nella loro sede."
+    ],
+    "warnings": [
+      "Ruota allentata, cerchio molto deformato, raggi rotti o sfregamento importante richiedono di non usare la bici.",
+      "Non mettere dita vicino a raggi, disco o pattini mentre la ruota gira."
+    ]
+  },
+  {
+    "id": "ebike-external-check",
+    "active": true,
+    "category": "EBIKE",
+    "title": "Controllo esterno e-bike",
+    "steps": [
+      "Spegni il sistema e osserva soltanto l'esterno di batteria, supporto, cavi e connettori accessibili.",
+      "Verifica che la batteria sia agganciata e che non presenti urti, deformazioni o infiltrazioni visibili.",
+      "Per errori a display annota il codice esatto e consulta il manuale del produttore o la ciclofficina."
+    ],
+    "warnings": [
+      "Batteria gonfia, calda, danneggiata, fumante o con odore anomalo: non usare né ricaricare la bici e allontanati in sicurezza.",
+      "Non aprire batteria, motore, caricatore o connettori sigillati."
+    ]
+  },
+  {
+    "id": "other-general-inspection",
+    "active": true,
+    "category": "OTHER",
+    "title": "Ispezione esterna generale",
+    "steps": [
+      "Chiedi dove si manifesta il problema, quando è iniziato e se segue urto, caduta o manutenzione recente.",
+      "A bici ferma osserva l'area senza smontare componenti e senza effettuare una prova su strada.",
+      "Se il problema non è chiaramente riconducibile a un controllo approvato, interrompi la diagnosi e consiglia la ciclofficina."
+    ],
+    "warnings": [
+      "Crepe, deformazioni, parti allentate o rumori provenienti da componenti strutturali richiedono di non usare la bici.",
+      "In caso di dubbio prevale sempre la valutazione in presenza."
+    ]
+  }
+]

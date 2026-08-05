@@ -1,0 +1,304 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userRecord() {
+      return get(userPath()).data;
+    }
+
+    function activeUser() {
+      return signedIn()
+        && exists(userPath())
+        && userRecord().active == true;
+    }
+
+    function hasRole(role) {
+      return activeUser()
+        && userRecord().roles is list
+        && role in userRecord().roles;
+    }
+
+    function hasAnyRole(roles) {
+      return activeUser()
+        && userRecord().roles is list
+        && userRecord().roles.hasAny(roles);
+    }
+
+    function immutableMetadata() {
+      return request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    function ownsBotData(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validBotSession() {
+      return request.resource.data.keys().hasOnly([
+        'bikeSummary',
+        'initialProblem',
+        'checksPerformed',
+        'possibleCauses',
+        'safetyLevel',
+        'outcome',
+        'usageRecommendation',
+        'updatedAt'
+      ])
+      && request.resource.data.bikeSummary is string
+      && request.resource.data.bikeSummary.size() <= 200
+      && request.resource.data.initialProblem is string
+      && request.resource.data.initialProblem.size() <= 1000
+      && request.resource.data.checksPerformed is list
+      && request.resource.data.checksPerformed.size() <= 20
+      && request.resource.data.possibleCauses is list
+      && request.resource.data.possibleCauses.size() <= 20
+      && request.resource.data.safetyLevel in ['SAFE', 'CAUTION', 'STOP']
+      && request.resource.data.outcome in ['GREEN', 'YELLOW', 'RED', 'UNDETERMINED']
+      && request.resource.data.usageRecommendation is string
+      && request.resource.data.usageRecommendation.size() <= 2000
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    match /ciclofficinaBotUsers/{userId}/sessions/{sessionId} {
+      allow read, delete: if ownsBotData(userId);
+      allow create, update: if ownsBotData(userId) && validBotSession();
+    }
+
+    match /users/{userId} {
+      allow read: if activeUser()
+        && (request.auth.uid == userId || hasRole('admin'));
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /members/{memberId} {
+      allow read: if hasAnyRole(['admin', 'workshop_manager', 'treasurer']);
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /memberPrivateProfiles/{memberId} {
+      allow read: if hasAnyRole(['admin', 'workshop_manager']);
+      allow create, update, delete: if false;
+    }
+
+    match /authorizationEvidence/{evidenceId} {
+      allow read: if hasAnyRole(['admin', 'workshop_manager']);
+      allow create, update, delete: if false;
+
+      match /proofVersionHistory/{versionId} {
+        allow read: if hasAnyRole(['admin', 'workshop_manager']);
+        allow write: if false;
+      }
+
+      match /documentIncidents/{incidentId} {
+        allow read: if hasAnyRole(['admin', 'workshop_manager']);
+        allow write: if false;
+      }
+    }
+
+    match /bikes/{bikeId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'volunteer',
+        'treasurer',
+        'read_only'
+      ]);
+      allow create: if hasAnyRole(['admin', 'workshop_manager', 'operator']);
+      allow update: if hasAnyRole(['admin', 'workshop_manager', 'operator'])
+        && immutableMetadata()
+        && request.resource.data.status == resource.data.status;
+      allow delete: if false;
+
+      match /statusHistory/{eventId} {
+        allow read: if hasAnyRole([
+          'admin',
+          'workshop_manager',
+          'operator',
+          'volunteer',
+          'treasurer',
+          'read_only'
+        ]);
+        allow write: if false;
+      }
+
+      match /photos/{photoId} {
+        allow read: if hasAnyRole([
+          'admin',
+          'workshop_manager',
+          'operator',
+          'volunteer'
+        ]);
+        allow write: if false;
+      }
+
+    }
+
+    match /bikeDonations/{donationId} {
+      allow read: if hasAnyRole(['admin', 'workshop_manager', 'operator']);
+      allow create: if hasAnyRole(['admin', 'workshop_manager', 'operator']);
+      allow update: if hasAnyRole(['admin', 'workshop_manager'])
+        && immutableMetadata();
+      allow delete: if false;
+    }
+
+    match /repairs/{repairId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'treasurer',
+        'read_only'
+      ]);
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+
+      match /statusHistory/{eventId} {
+        allow read: if hasAnyRole([
+          'admin',
+          'workshop_manager',
+          'operator',
+          'treasurer',
+          'read_only'
+        ]);
+        allow write: if false;
+      }
+
+      match /pickupHistory/{eventId} {
+        allow read: if hasAnyRole([
+          'admin',
+          'workshop_manager',
+          'operator',
+          'read_only'
+        ]);
+        allow write: if false;
+      }
+
+      match /safetyHistory/{eventId} {
+        allow read: if hasAnyRole([
+          'admin',
+          'workshop_manager',
+          'operator',
+          'read_only'
+        ]);
+        allow write: if false;
+      }
+    }
+
+    match /repairTasks/{taskId} {
+      allow read: if hasAnyRole(['admin', 'workshop_manager', 'operator'])
+        || (hasRole('volunteer')
+          && request.auth.uid in resource.data.assignedUserIds);
+      allow create, update: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator'
+      ]);
+      allow delete: if false;
+    }
+
+    match /parts/{partId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'volunteer',
+        'treasurer',
+        'read_only'
+      ]);
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /partMovements/{movementId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'treasurer',
+        'read_only'
+      ]);
+      allow create, update, delete: if false;
+    }
+
+    match /tests/{testId} {
+      allow read: if activeUser();
+      allow create, update, delete: if false;
+    }
+
+    match /deliveries/{deliveryId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'treasurer',
+        'read_only'
+      ]);
+      allow create, update, delete: if false;
+    }
+
+    match /receipts/{receiptId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'treasurer',
+        'read_only'
+      ]) || (hasRole('operator') && resource.data.createdBy == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /documents/{documentId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'treasurer'
+      ]);
+      allow write: if false;
+
+      match /copyHistory/{eventId} {
+        allow read: if hasAnyRole([
+          'admin',
+          'workshop_manager',
+          'operator'
+        ]);
+        allow write: if false;
+      }
+
+      match /correctionHistory/{eventId} {
+        allow read: if hasAnyRole(['admin', 'workshop_manager']);
+        allow write: if false;
+      }
+    }
+
+    match /settings/{settingId} {
+      allow read: if activeUser();
+      allow create, update: if hasRole('admin');
+      allow delete: if false;
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if hasAnyRole(['admin', 'workshop_manager', 'treasurer']);
+      allow write: if false;
+    }
+
+    match /counters/{counterId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,174 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function activeUser() {
+      return signedIn()
+        && request.auth.token.active == true
+        && request.auth.token.roles is list;
+    }
+
+    function hasAnyRole(roles) {
+      return activeUser()
+        && request.auth.token.roles.hasAny(roles);
+    }
+
+    function validImageUpload() {
+      return request.resource != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    function validBikePhoto(bikeId, uploaderUid) {
+      return resource == null
+        && validImageUpload()
+        && request.resource.size > 0
+        && request.auth.uid == uploaderUid
+        && request.resource.metadata.keys().hasAll([
+          'bikeId',
+          'uploaderUid',
+          'photoType'
+        ])
+        && request.resource.metadata.bikeId == bikeId
+        && request.resource.metadata.uploaderUid == uploaderUid
+        && request.resource.metadata.photoType in [
+          'Ingresso',
+          'Dettaglio tecnico',
+          'Lavorazione',
+          'Risultato finale'
+        ];
+    }
+
+    function validAuthorizationEvidence(repairId, uploaderUid, method) {
+      return resource == null
+        && request.resource != null
+        && request.auth.uid == uploaderUid
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'application/pdf|image/(jpeg|png)'
+        )
+        && request.resource.metadata.repairId == repairId
+        && request.resource.metadata.uploaderUid == request.auth.uid
+        && request.resource.metadata.method == method
+        && (method == 'Modulo firmato'
+          || (method == 'Firma su dispositivo'
+            && request.resource.contentType == 'image/png'));
+    }
+
+    function validAuthorizationReviewEvidence(evidenceId, uploaderUid, outcome) {
+      return resource == null
+        && request.resource != null
+        && request.auth.uid == uploaderUid
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'application/pdf|image/(jpeg|png)'
+        )
+        && request.resource.metadata.evidenceId == evidenceId
+        && request.resource.metadata.uploaderUid == request.auth.uid
+        && request.resource.metadata.outcome == outcome
+        && (outcome == 'return_paper' || outcome == 'destroy_paper');
+    }
+
+    match /bikes/{bikeId}/photos/{documentId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator',
+        'volunteer'
+      ]);
+      allow create: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator'
+      ]) && validBikePhoto(bikeId, request.auth.uid);
+      allow update, delete: if false;
+    }
+
+    match /repairs/{repairId}/attachments/{documentId} {
+      allow read: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator'
+      ]);
+      allow create: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator'
+      ]) && validImageUpload();
+      allow update, delete: if false;
+    }
+
+    match /documents/{documentType}/{entityId}/{documentId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /authorizationEvidence/{repairId}/{uploaderUid}/{evidenceId} {
+      allow read: if false;
+      allow create: if hasAnyRole([
+        'admin',
+        'workshop_manager',
+        'operator'
+      ]) && validAuthorizationEvidence(
+        repairId,
+        uploaderUid,
+        request.resource.metadata.method
+      );
+      allow update, delete: if false;
+    }
+
+    match /authorizationReviewEvidence/{evidenceId}/{uploaderUid}/{proofId} {
+      allow read: if false;
+      allow create: if hasAnyRole([
+        'admin',
+        'workshop_manager'
+      ]) && validAuthorizationReviewEvidence(
+        evidenceId,
+        uploaderUid,
+        request.resource.metadata.outcome
+      );
+      allow update, delete: if false;
+    }
+
+    match /acceptanceSignatureEvidence/{documentId}/{uploaderUid}/{evidenceId} {
+      allow read: if false;
+      allow create: if hasAnyRole([
+        'admin',
+        'workshop_manager'
+      ]) && resource == null
+        && request.auth.uid == uploaderUid
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches(
+          'application/pdf|image/(jpeg|png)'
+        )
+        && request.resource.metadata.documentId == documentId
+        && request.resource.metadata.uploaderUid == request.auth.uid
+        && (request.resource.metadata.method == 'Modulo firmato'
+          || (request.resource.metadata.method == 'Firma su dispositivo'
+            && request.resource.contentType == 'image/png'));
+      allow update, delete: if false;
+    }
+
+    match /ciclofficinaBotUsers/{userId}/sessions/{sessionId}/photos/{photoId} {
+      allow read, delete: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && resource == null
+        && request.resource.size > 0
+        && request.resource.size <= 1250000
+        && request.resource.contentType == 'image/jpeg';
+      allow update: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
