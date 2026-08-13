@@ -31,4 +31,10 @@ class BikeSafetyEngineTest {
     @Test fun `la regola locale prevale sul risultato remoto`() {
         assertEquals(SafetyLevel.STOP, engine.assess("La batteria è gonfia", SafetyLevel.CAUTION).level)
     }
+
+    @Test fun `un solo raggio rotto conserva il motivo remoto senza riferimenti alla batteria`() {
+        val result = engine.assess("Vedo un raggio rotto", SafetyLevel.STOP)
+        assertEquals(SafetyLevel.STOP, result.level)
+        assertEquals("Il controllo remoto richiede l'arresto", result.reason)
+    }
 }
