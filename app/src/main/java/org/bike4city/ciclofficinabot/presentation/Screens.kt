@@ -44,6 +44,7 @@ import org.bike4city.ciclofficinabot.domain.model.BikeProfile
 import org.bike4city.ciclofficinabot.domain.model.DiagnosisOutcome
 import org.bike4city.ciclofficinabot.domain.model.SafetyLevel
 import org.bike4city.ciclofficinabot.presentation.chat.ChatViewModel
+import org.bike4city.ciclofficinabot.presentation.chat.shouldShowWorkshopContact
 import org.bike4city.ciclofficinabot.presentation.history.HistoryViewModel
 import org.bike4city.ciclofficinabot.presentation.history.categoryLabel
 import org.bike4city.ciclofficinabot.presentation.history.outcomeLabel
@@ -196,6 +197,7 @@ fun HomeScreen(bikeProfile: BikeProfile, onStart: () -> Unit, onHistory: () -> U
     Text("Le conversazioni e i riepiloghi restano sul dispositivo. Dal riepilogo puoi scegliere se salvare anche una copia online.")
     ContactCard()
     TextButton(onClick = onPrivacy, modifier = Modifier.fillMaxWidth()) { Text("Informativa privacy") }
+    LegalFooter()
 }
 
 @Composable
@@ -243,6 +245,7 @@ fun ChatScreen(onBack: () -> Unit, onStop: (String) -> Unit, onReport: (String) 
     var selectedPhoto by remember { mutableStateOf<Uri?>(null) }
     var pendingPhoto by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current.applicationContext
+    val uriHandler = LocalUriHandler.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) pendingPhoto = uri
     }
@@ -298,6 +301,9 @@ fun ChatScreen(onBack: () -> Unit, onStop: (String) -> Unit, onReport: (String) 
         ) { Text("Aggiungi una foto") }
         Button(onClick = { viewModel.send(text, selectedPhoto); text = ""; selectedPhoto = null }, enabled = text.isNotBlank() && !state.isLoading, modifier = Modifier.fillMaxWidth()) { Text("Invia") }
         TextButton(onClick = { selectedPhoto = null; pendingPhoto = null; text = ""; viewModel.reset() }, modifier = Modifier.fillMaxWidth()) { Text("Nuova diagnosi") }
+        if (shouldShowWorkshopContact(state.completed, state.outcome)) {
+            WorkshopRecommendation { uriHandler.openUri(WORKSHOP_WHATSAPP_URL) }
+        }
         if (state.completed) Button(onClick = { onReport(state.sessionId) }, modifier = Modifier.fillMaxWidth()) { Text("Vai al riepilogo") }
         OutlinedButton(onClick = viewModel::stop, colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), modifier = Modifier.fillMaxWidth()) { Text("Interrompi la procedura") }
     }
@@ -334,7 +340,7 @@ private fun PhotoPreview(uri: Uri) {
         Text("Rivolgiti a personale qualificato. Evita di azionare o maneggiare inutilmente il componente interessato.")
     } }
     Button(onClick = onReport, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Build, null); Spacer(Modifier.width(8.dp)); Text("Genera riepilogo") }
-    ContactCard()
+    ContactCard(recommendation = true)
 }
 
 @Composable
@@ -368,16 +374,30 @@ private fun BrandHeader() {
     }
 }
 
+private const val WORKSHOP_WHATSAPP_URL = "https://wa.me/393516849832?text=Ciao%2C%20ho%20appena%20completato%20una%20diagnosi%20con%20Raggi%C3%B2%20e%20vorrei%20far%20controllare%20la%20mia%20bici."
+
 @Composable
-private fun ContactCard() {
+private fun WorkshopRecommendation(onWhatsApp: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Ti consigliamo di passare in ciclofficina", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("Scrivici subito su WhatsApp per concordare un controllo della bici.")
+            Button(onClick = onWhatsApp, modifier = Modifier.fillMaxWidth()) { Text("Contatta su WhatsApp") }
+        }
+    }
+}
+
+@Composable
+private fun ContactCard(recommendation: Boolean = false) {
     val uriHandler = LocalUriHandler.current
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (recommendation) Text("Ti consigliamo di passare in ciclofficina", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text("Ciclofficina InControPedale e Bike4City", fontWeight = FontWeight.Bold)
             Text("Via di Casal Bruciato 11 · 00159 Roma")
             Text("Apertura: giovedì 16:00–19:30 · sabato 10:30–13:30")
             OutlinedButton(
-                onClick = { uriHandler.openUri("https://wa.me/393516849832") },
+                onClick = { uriHandler.openUri(WORKSHOP_WHATSAPP_URL) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("WhatsApp")
@@ -421,7 +441,7 @@ fun PrivacyScreen(onBack: () -> Unit) = Page("Informativa privacy", onBack) {
         "8. Sicurezza e limiti del servizio",
         "I trasferimenti avvengono tramite connessioni cifrate; backup e trasferimento automatico dei dati diagnostici sono disabilitati. L'assistente fornisce un primo orientamento prudente e non sostituisce il controllo di un meccanico qualificato."
     )
-    Text("Questa informativa dovrà essere pubblicata anche su un indirizzo web accessibile prima della distribuzione tramite Google Play.", fontWeight = FontWeight.SemiBold)
+    LegalFooter()
 }
 
 @Composable
@@ -429,6 +449,33 @@ private fun PrivacySection(title: String, body: String) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, fontWeight = FontWeight.Bold)
         Text(body)
+    }
+}
+
+@Composable
+private fun LegalFooter() {
+    HorizontalDivider(Modifier.padding(top = 8.dp))
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            "© 2026 Ciclofficina InControPedale e Bike4City. Tutti i diritti riservati.",
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            "Raggiò offre un primo orientamento e non sostituisce il controllo di un meccanico qualificato.",
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            "Servizio realizzato con tecnologie Firebase di Google e OpenAI. I relativi nomi e marchi appartengono ai rispettivi titolari.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -502,6 +549,9 @@ private fun PrivacySection(title: String, body: String) {
                 onUpload = { confirmUpload = true },
                 onDeleteRemote = { confirmRemoteDelete = true }
             )
+            if (value.outcome == DiagnosisOutcome.YELLOW || value.outcome == DiagnosisOutcome.RED) {
+                ContactCard(recommendation = true)
+            }
         }
         Button(onClick = onHome, modifier = Modifier.fillMaxWidth()) { Text("Torna alla home") }
     }

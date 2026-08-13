@@ -17,3 +17,5 @@ functions/lib/
 captures/
 *.iml
 dist/InControPedale-Bike4City-tester-v0.1.0.apk
+# Il sito ha un repository e un ciclo di pubblicazione separati.
+web/
