@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { createHash } from "node:crypto";
 import OpenAI from "openai";
@@ -25,6 +25,100 @@ const botEnabled = defineBoolean("BOT_ENABLED", { default: true });
 const rateLimitPerMinute = defineInt("BOT_RATE_LIMIT_PER_MINUTE", { default: 10 });
 const maxMessagesPerSession = defineInt("BOT_MAX_MESSAGES_PER_SESSION", { default: 30 });
 const enforceAppCheck = defineBoolean("ENFORCE_APP_CHECK", { default: false });
+
+const analyticsEvents = [
+  "app_open",
+  "diagnosis_started",
+  "diagnosis_completed",
+  "photo_used",
+  "workshop_recommended",
+  "whatsapp_clicked",
+] as const;
+
+const analyticsSources = [
+  "direct",
+  "sito",
+  "card",
+  "locandina",
+  "gazebo",
+  "facebook",
+  "whatsapp",
+  "altro",
+] as const;
+
+type AnalyticsEvent = typeof analyticsEvents[number];
+type AnalyticsSource = typeof analyticsSources[number];
+
+function isAnalyticsEvent(value: unknown): value is AnalyticsEvent {
+  return typeof value === "string" && analyticsEvents.includes(value as AnalyticsEvent);
+}
+
+function isAnalyticsSource(value: unknown): value is AnalyticsSource {
+  return typeof value === "string" && analyticsSources.includes(value as AnalyticsSource);
+}
+
+function romePeriodKeys(now = new Date()): { day: string; month: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const day = `${values.year}-${values.month}-${values.day}`;
+  return { day, month: `${values.year}-${values.month}` };
+}
+
+export const recordRaggioAnalytics = onCall({
+  region: "europe-west1",
+  timeoutSeconds: 15,
+  memory: "256MiB",
+  minInstances: 0,
+  maxInstances: 3,
+  concurrency: 40,
+  enforceAppCheck,
+}, async (call) => {
+  if (!call.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Autenticazione necessaria.");
+  }
+
+  const event = call.data?.event;
+  const source = call.data?.source ?? "direct";
+  if (!isAnalyticsEvent(event) || !isAnalyticsSource(source)) {
+    throw new HttpsError("invalid-argument", "Evento statistico non valido.");
+  }
+
+  const { day, month } = romePeriodKeys();
+  const eventIncrement = FieldValue.increment(1);
+  const sourceIncrement = FieldValue.increment(1);
+  const baseData = {
+    events: { [event]: eventIncrement },
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  const data = event === "app_open"
+    ? { ...baseData, sources: { [source]: sourceIncrement } }
+    : baseData;
+
+  const batch = db.batch();
+  batch.set(db.collection("raggioAnalytics").doc(`day_${day}`), {
+    periodType: "day",
+    period: day,
+    ...data,
+  }, { merge: true });
+  batch.set(db.collection("raggioAnalytics").doc(`month_${month}`), {
+    periodType: "month",
+    period: month,
+    ...data,
+  }, { merge: true });
+  batch.set(db.collection("raggioAnalytics").doc("total"), {
+    periodType: "total",
+    period: "all",
+    ...data,
+  }, { merge: true });
+  await batch.commit();
+
+  return { recorded: true };
+});
 
 export const bikeMechanicChat = onCall({
   region: "europe-west1",
