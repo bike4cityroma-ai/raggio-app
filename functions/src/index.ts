@@ -135,6 +135,26 @@ function numericCounters(value: unknown): Record<string, number> {
     .filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])));
 }
 
+type SocialHubFirestoreField = {
+  stringValue?: string;
+  booleanValue?: boolean;
+};
+
+async function getSocialHubProfileRole(uid: string, hubIdToken: string): Promise<string> {
+  const url = "https://firestore.googleapis.com/v1/projects/bike4city-social-hub/databases/(default)/documents/users/" +
+    encodeURIComponent(uid);
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${hubIdToken}` } });
+  if (!response.ok) {
+    logger.warn("social hub profile lookup failed", { status: response.status, uid });
+    return "";
+  }
+  const document = await response.json() as { fields?: Record<string, SocialHubFirestoreField> };
+  const fields = document.fields ?? {};
+  if (typeof fields.role?.stringValue === "string") return fields.role.stringValue;
+  if (fields.superadmin?.booleanValue === true) return "superadmin";
+  if (fields.admin?.booleanValue === true) return "admin";
+  return "";
+}
 export const getRaggioAnalytics = onCall({
   region: "europe-west1",
   timeoutSeconds: 15,
@@ -156,8 +176,11 @@ export const getRaggioAnalytics = onCall({
     throw new HttpsError("unauthenticated", "Sessione amministratore non valida o scaduta.");
   }
 
-  const role = typeof decoded.role === "string" ? decoded.role : "";
-  const authorized = role === "admin" || role === "superadmin" || decoded.admin === true || decoded.superadmin === true;
+  const tokenRole = typeof decoded.role === "string" ? decoded.role : "";
+  const tokenAuthorized = tokenRole === "admin" || tokenRole === "superadmin" ||
+    decoded.admin === true || decoded.superadmin === true;
+  const profileRole = tokenAuthorized ? "" : await getSocialHubProfileRole(decoded.uid, hubIdToken);
+  const authorized = tokenAuthorized || profileRole === "admin" || profileRole === "superadmin";
   if (!authorized) throw new HttpsError("permission-denied", "Profilo non autorizzato alle statistiche.");
 
   const { day, month } = romePeriodKeys();
