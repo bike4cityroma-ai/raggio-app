@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { createHash } from "node:crypto";
@@ -17,6 +18,7 @@ import { enforceServerSafety, hasCriticalSignal, stopResponse } from "./safety/s
 
 initializeApp();
 const db = getFirestore();
+const socialHubAuth = getAuth(initializeApp({ projectId: "bike4city-social-hub" }, "bike4citySocialHub"));
 const bucket = getStorage().bucket("bike4city-ciclofficina.firebasestorage.app");
 
 const openAiApiKey = defineSecret("OPENAI_API_KEY");
@@ -120,6 +122,68 @@ export const recordRaggioAnalytics = onCall({
   return { recorded: true };
 });
 
+type AnalyticsCounters = {
+  periodType: "day" | "month" | "total";
+  period: string;
+  events: Record<string, number>;
+  sources: Record<string, number>;
+};
+
+function numericCounters(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value)
+    .filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])));
+}
+
+export const getRaggioAnalytics = onCall({
+  region: "europe-west1",
+  timeoutSeconds: 15,
+  memory: "256MiB",
+  minInstances: 0,
+  maxInstances: 3,
+  concurrency: 20,
+  enforceAppCheck,
+}, async (call) => {
+  const hubIdToken = call.data?.hubIdToken;
+  if (typeof hubIdToken !== "string" || hubIdToken.length < 100 || hubIdToken.length > 5000) {
+    throw new HttpsError("unauthenticated", "Accesso amministratore necessario.");
+  }
+
+  let decoded: Awaited<ReturnType<typeof socialHubAuth.verifyIdToken>>;
+  try {
+    decoded = await socialHubAuth.verifyIdToken(hubIdToken);
+  } catch {
+    throw new HttpsError("unauthenticated", "Sessione amministratore non valida o scaduta.");
+  }
+
+  const role = typeof decoded.role === "string" ? decoded.role : "";
+  const authorized = role === "admin" || role === "superadmin" || decoded.admin === true || decoded.superadmin === true;
+  if (!authorized) throw new HttpsError("permission-denied", "Profilo non autorizzato alle statistiche.");
+
+  const { day, month } = romePeriodKeys();
+  const refs = [
+    db.collection("raggioAnalytics").doc(`day_${day}`),
+    db.collection("raggioAnalytics").doc(`month_${month}`),
+    db.collection("raggioAnalytics").doc("total"),
+  ];
+  const snapshots = await db.getAll(...refs);
+  const fallback = [
+    { periodType: "day" as const, period: day },
+    { periodType: "month" as const, period: month },
+    { periodType: "total" as const, period: "all" },
+  ];
+  const periods: AnalyticsCounters[] = snapshots.map((snapshot, index) => {
+    const data = snapshot.data();
+    return {
+      periodType: fallback[index].periodType,
+      period: fallback[index].period,
+      events: numericCounters(data?.events),
+      sources: numericCounters(data?.sources),
+    };
+  });
+  logger.info("raggio analytics viewed", { adminUid: decoded.uid });
+  return { day: periods[0], month: periods[1], total: periods[2] };
+});
 export const bikeMechanicChat = onCall({
   region: "europe-west1",
   timeoutSeconds: 60,
