@@ -27,6 +27,7 @@ const botEnabled = defineBoolean("BOT_ENABLED", { default: true });
 const rateLimitPerMinute = defineInt("BOT_RATE_LIMIT_PER_MINUTE", { default: 10 });
 const maxMessagesPerSession = defineInt("BOT_MAX_MESSAGES_PER_SESSION", { default: 30 });
 const enforceAppCheck = defineBoolean("ENFORCE_APP_CHECK", { default: false });
+const raggioStatsAdminEmails = defineString("RAGGIO_STATS_ADMIN_EMAILS", { default: "" });
 
 const analyticsEvents = [
   "app_open",
@@ -162,6 +163,7 @@ export const getRaggioAnalytics = onCall({
   minInstances: 0,
   maxInstances: 3,
   concurrency: 20,
+  invoker: "public",
   enforceAppCheck,
 }, async (call) => {
   const hubIdToken = call.data?.hubIdToken;
@@ -172,7 +174,13 @@ export const getRaggioAnalytics = onCall({
   let decoded: Awaited<ReturnType<typeof socialHubAuth.verifyIdToken>>;
   try {
     decoded = await socialHubAuth.verifyIdToken(hubIdToken);
-  } catch {
+  } catch (error) {
+    logger.warn("social hub token verification failed", {
+      errorCode: error instanceof Error && "code" in error
+        ? String((error as Error & { code?: unknown }).code ?? "")
+        : "",
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
     throw new HttpsError("unauthenticated", "Sessione amministratore non valida o scaduta.");
   }
 
@@ -180,7 +188,17 @@ export const getRaggioAnalytics = onCall({
   const tokenAuthorized = tokenRole === "admin" || tokenRole === "superadmin" ||
     decoded.admin === true || decoded.superadmin === true;
   const profileRole = tokenAuthorized ? "" : await getSocialHubProfileRole(decoded.uid, hubIdToken);
-  const authorized = tokenAuthorized || profileRole === "admin" || profileRole === "superadmin";
+  const verifiedEmail = typeof decoded.email === "string"
+    ? decoded.email.trim().toLowerCase()
+    : "";
+  const allowedEmails = raggioStatsAdminEmails.value()
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  const authorized = tokenAuthorized ||
+    profileRole === "admin" ||
+    profileRole === "superadmin" ||
+    allowedEmails.includes(verifiedEmail);
   if (!authorized) throw new HttpsError("permission-denied", "Profilo non autorizzato alle statistiche.");
 
   const { day, month } = romePeriodKeys();
