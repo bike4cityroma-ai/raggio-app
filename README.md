@@ -8,8 +8,8 @@ della bicicletta. Non sostituisce un meccanico e interrompe il flusso quando ril
 L'app fornisce il tema Bike4City, onboarding, home, profilo bici, diagnosi guidata online,
 regole di sicurezza, schermata STOP, riepilogo e cronologia locale. Sessioni, messaggi e report sono
 persistiti con Room; consenso e profilo bici sono salvati con DataStore. Build debug/release, KSP,
-17 test Android e Lint sono stati verificati con il JDK 21 incorporato di Android Studio. L'APK
-aggiornato è stato installato e avviato su un moto g85 5G il 4 agosto 2026 senza crash applicativi.
+I test Android e backend, la compilazione e Lint sono stati verificati. L'APK tester aggiornato
+`0.1.2` è disponibile in `dist/`, offuscato con R8 e firmato con il certificato di sviluppo.
 
 Dal riepilogo l'utente può scegliere esplicitamente di salvare una copia su Firebase, verificarne
 lo stato ed eliminarla. Room resta la sorgente offline principale e la cronologia coordina la
@@ -113,6 +113,28 @@ Se la chiamata remota fallisce, l'app effettua un secondo tentativo e poi mostra
 Il deploy della sola AI userà `firebase deploy --only functions:bikeMechanicChat`; non modifica le regole
 Firestore della web app.
 
+## Versione web pubblica
+
+La versione web di Raggiò è pubblica all'indirizzo:
+
+<https://raggio-ciclofficina.livio-lanni.chatgpt.site>
+
+La chat web usa lo stesso servizio Firebase dell'app Android e mostra messaggi, risposte rapide,
+istruzioni operative numerate e avvertenze. Include caricamento facoltativo delle foto con consenso,
+contatto WhatsApp per gli esiti che richiedono la ciclofficina, indirizzo, orari, copyright,
+attribuzioni tecnologiche e informativa privacy pubblica. Il codice del sito vive in `web/`, che
+mantiene un repository e un ciclo di pubblicazione Sites separati dal repository Android/backend.
+
+## Pacchetto tester
+
+- APK: `dist/RAGGIO-tester-v0.1.2.apk`
+- Versione: `0.1.2` (`versionCode 3`)
+- SHA-256: `833C45403B41561E3861AAAA5FB91306F21878E8C023FF935C3CAC8B6C429591`
+- Istruzioni: `dist/ISTRUZIONI_TESTER.md`
+
+L'APK tester non è una build destinata a Google Play: usa il certificato di sviluppo e sarà
+sostituito da un Android App Bundle firmato con il keystore release.
+
 ## Struttura
 
 Vedere [PLAN.md](PLAN.md) per architettura, fasi, modello dati e rischi. Il package segue i livelli
@@ -123,14 +145,19 @@ Vedere [PLAN.md](PLAN.md) per architettura, fasi, modello dati e rischi. Il pack
 Non usare la bici in presenza di problemi a freni, ruote, sterzo, telaio, forcella o batteria.
 Nessuna posizione, pubblicità o tracciamento è previsto. Backup e trasferimento dei dati diagnostici
 sono disattivati. Le richieste OpenAI usano `store: false` e un identificatore di sicurezza pseudonimo.
-Contatti, URL della privacy policy e logo definitivo restano da fornire prima della pubblicazione.
+Logo, contatti, indirizzo, orari, copyright e informativa privacy sono presenti nell'app e nel sito.
+Il titolare indicato è Ciclofficina InControPedale e Bike4City; Firebase di Google e OpenAI sono
+attribuiti come fornitori tecnologici. Raggiò resta un primo orientamento e non sostituisce il
+controllo di un meccanico qualificato.
 
 ## Problemi noti / prossimi passi
 
 - Sessioni, messaggi e report sono persistenti in Room e consultabili/eliminabili dalla cronologia.
 - Consenso di onboarding e profilo bici attivo sono persistenti in DataStore.
 - Foto collegate con consenso, sanitizzazione, cancellazione immediata e retention massima di 7 giorni.
-- Contatti, orari, logo definitivo e URL dell'informativa privacy devono essere forniti prima della pubblicazione; finché assenti non vengono mostrati nell'interfaccia.
+- Sito pubblico, contatti, orari, loghi, copyright, attribuzioni e informativa privacy sono disponibili.
+- APK tester `0.1.2` generato, verificato e versionato con istruzioni e SHA-256.
+- Il contatto WhatsApp viene proposto al termine delle diagnosi gialle o rosse.
 - Cloud Function e adapter AI sono distribuiti; sette procedure meccaniche approvate sono presenti in Firestore.
 - Il percorso E2E Auth anonima → Function → OpenAI è verificato, inclusi output strutturato e STOP server-side.
 - Photo Picker, consenso, rimozione metadati, limite 1,25 MB, analisi visiva e retention massima di 7 giorni sono attivi.

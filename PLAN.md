@@ -1,6 +1,6 @@
 # Piano di sviluppo — BIKE4CITY Ciclofficina Bot
 
-Ultimo aggiornamento: 4 agosto 2026
+Ultimo aggiornamento: 13 agosto 2026
 
 ## Stato
 
@@ -11,6 +11,8 @@ Ultimo aggiornamento: 4 agosto 2026
 - [x] Fase 4: Cloud Function TypeScript e provider AI distribuiti; 7 procedure approvate caricate, test locali completati e collaudo E2E superato con risposta strutturata e STOP server-side.
 - [x] Fase 5: Photo Picker, consenso esplicito, sanitizzazione JPEG, Storage isolato, analisi OpenAI, cancellazione per sessione e retention massima di 7 giorni; flusso E2E collaudato con immagine sintetica.
 - [x] Fase 6: hardening tecnico, gestione esplicita degli errori online, privacy backend, backup disattivato, App Check client, test Android, compilazione debug/release, audit Lint e installazione su moto g85 5G completati. Rimossi il motore e i contenuti fissi della prima versione; titolo, corpo e avvisi dipendono esclusivamente dalla diagnosi corrente. Gli adempimenti manuali pre-pubblicazione restano tracciati in `RELEASE_CHECKLIST.md`.
+- [x] Fase 7: versione web pubblicata con chat, passaggi numerati, foto facoltative, contatti, orari, copyright, attribuzioni e privacy; app Android allineata con footer legale e suggerimento WhatsApp per esiti gialli o rossi.
+- [x] APK tester `0.1.2` generato con R8, test Android e backend superati, SHA-256 documentato e sorgenti pubblicati su GitHub tramite pull request.
 
 ## Architettura proposta
 
@@ -68,5 +70,6 @@ Room conserva sessioni, messaggi, report e stato della copia remota; DataStore c
 - Installare Android SDK 36 e usare il JDK 21 incorporato in Android Studio per Gradle.
 - Aggiungere `google-services.json` solo quando si abilita Firebase (non versionato).
 - Mantenere il secret del provider AI soltanto lato Cloud Functions e ruotarlo tramite Secret Manager quando necessario.
-- Fornire logo, contatti, informativa privacy e orari Bike4City prima della pubblicazione sugli store.
+- Mantenere sincronizzati tra Android e web logo, contatti, orari, copyright e informativa privacy.
 - Configurare il certificato di firma release e registrare Play Integrity/App Check prima di impostare `ENFORCE_APP_CHECK=true`.
+- Preparare la versione `1.0.0`, l'Android App Bundle firmato e la scheda Google Play prima della pubblicazione sullo store.
